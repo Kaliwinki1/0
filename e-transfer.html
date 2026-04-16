@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>RBC — Send Funds</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  :root{--blue:#0051A5;--dblue:#003168;--yellow:#F5C400;--bg:#F5F5F5;--brd:#E0E0E0;--txt:#1A1A1A;--gray:#666;--nav-h:86px;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Roboto','Helvetica Neue',sans-serif;background:#222;display:flex;justify-content:center;min-height:100vh;}
+
+  .phone{width:100%;max-width:390px;min-height:100vh;background:var(--bg);display:flex;flex-direction:column;padding-top:30px;padding-bottom:var(--nav-h);position:relative;}
+
+  /* ═══ STATUS BAR — always fixed at top ═══ */
+  .sb{
+    background:#000;color:#fff;
+    display:flex;align-items:center;
+    padding:7px 10px 6px;
+    height:30px;
+    position:fixed;top:0;
+    left:50%;transform:translateX(-50%);
+    width:100%;max-width:390px;
+    z-index:200;
+    gap:4px;
+  }
+  .sb-carrier{font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .sb-notifs{display:flex;align-items:center;gap:3px;flex:1;padding-left:4px;overflow:hidden;}
+  .sb-notif-ic{display:flex;align-items:center;}
+  .sb-time{position:absolute;left:50%;transform:translateX(-50%);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;}
+  .sb-r{display:flex;align-items:center;gap:6px;margin-left:auto;}
+  .sig-wrap{cursor:pointer;display:flex;align-items:center;height:14px;}
+  .batt-wrap{display:flex;align-items:center;gap:3px;cursor:pointer;}
+  .batt-pct{font-size:11px;font-weight:600;}
+  .batt-ic{display:flex;align-items:center;}
+
+  /* ═══ TOP NAV BAR (blue) ═══ */
+  .top-bar{
+    background:var(--dblue);
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 16px;
+    flex-shrink:0;
+  }
+  .top-bar-back{
+    background:none;border:none;cursor:pointer;
+    display:flex;align-items:center;gap:8px;
+    color:#fff;font-size:16px;font-weight:500;
+    font-family:inherit;
+  }
+  .top-bar-back svg{flex-shrink:0;}
+  .top-bar-help{
+    width:28px;height:28px;border-radius:50%;
+    border:1.8px solid rgba(255,255,255,0.72);
+    background:transparent;color:rgba(255,255,255,0.9);
+    font-size:14px;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-family:Georgia,serif;
+  }
+
+  /* ═══ TABS ═══ */
+  .tabs{
+    background:#fff;
+    display:flex;align-items:center;
+    padding:0 16px;
+    border-bottom:1px solid var(--brd);
+  }
+  .tab-lbl{font-size:12px;color:var(--gray);margin-right:12px;padding-bottom:2px;}
+  .tab{
+    font-size:14px;font-weight:500;padding:12px 4px;
+    cursor:pointer;border-bottom:2.5px solid transparent;margin-right:18px;
+    color:var(--gray);
+  }
+  .tab.active{color:var(--blue);border-bottom-color:var(--blue);}
+
+  /* ═══ INTERAC BANNER ═══ */
+  .interac-row{
+    background:#fff;margin:8px 0 0;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 16px;border-top:1px solid var(--brd);border-bottom:1px solid var(--brd);
+  }
+  .interac-lbl{font-size:15px;color:var(--txt);}
+
+
+  /* ═══ INFO ROW (daily limit + security) ═══ */
+  .info-block{background:#fff;margin-top:8px;border-top:1px solid var(--brd);}
+  .limit-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--brd);}
+  .limit-lbl{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--txt);}
+  .limit-circle{
+    width:18px;height:18px;border-radius:50%;
+    border:2px solid var(--blue);color:var(--blue);
+    font-size:10px;font-weight:800;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;cursor:pointer;
+  }
+  .limit-val{font-size:14px;font-weight:500;color:var(--txt);}
+  .security-row{
+    display:flex;align-items:flex-start;gap:10px;
+    padding:12px 16px;background:#f8f8f8;
+  }
+  .security-icon{flex-shrink:0;margin-top:1px;}
+  .security-txt{font-size:13px;color:var(--gray);line-height:1.45;}
+
+  /* ═══ FORM FIELDS ═══ */
+  .form-block{background:#fff;margin-top:8px;border-top:1px solid var(--brd);}
+
+  .field{
+    border-bottom:1px solid var(--brd);
+    padding:0 16px;
+    min-height:56px;
+    display:flex;align-items:center;
+    cursor:pointer;position:relative;
+  }
+  .field:active{background:#f8f9fb;}
+
+  .field-inner{flex:1;display:flex;flex-direction:column;justify-content:center;padding:12px 0;}
+  .field-lbl{font-size:13px;color:var(--gray);margin-bottom:2px;}
+  .field-val{font-size:15px;color:var(--txt);}
+  .field-placeholder{font-size:15px;color:#bbb;}
+  .field-arrow{
+    width:20px;height:20px;display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;margin-left:8px;
+  }
+
+  /* To field — two lines when filled */
+  .to-name{font-size:15px;font-weight:400;color:var(--txt);}
+  .to-sub{font-size:12px;color:var(--gray);margin-top:2px;}
+
+  /* Amount field */
+  .amount-field{
+    border-bottom:1px solid var(--brd);
+    padding:0 16px;
+    background:#fff;
+    min-height:56px;
+    display:flex;flex-direction:column;justify-content:center;
+  }
+  .amount-lbl{font-size:13px;color:var(--gray);margin-bottom:2px;padding-top:12px;}
+  .amount-input{
+    font-size:15px;font-weight:400;color:var(--txt);
+    border:none;outline:none;background:transparent;
+    font-family:inherit;width:100%;
+    caret-color:var(--blue);
+    padding-bottom:12px;
+  }
+  .amount-input::placeholder{color:#bbb;}
+
+  /* Message field */
+  .message-field{
+    border-bottom:1px solid var(--brd);
+    padding:14px 16px;background:#fff;
+  }
+  .message-lbl{font-size:13px;color:var(--gray);margin-bottom:6px;}
+  .message-textarea{
+    width:100%;font-size:15px;color:var(--txt);
+    border:none;outline:none;background:transparent;
+    font-family:inherit;resize:none;
+    caret-color:var(--blue);min-height:60px;
+    line-height:1.5;
+  }
+  .message-textarea::placeholder{color:#bbb;}
+  .message-count{text-align:right;font-size:12px;color:#aaa;margin-top:4px;}
+
+  /* Continue button */
+  .continue-wrap{padding:16px;background:#fff;margin-top:8px;border-top:1px solid var(--brd);}
+  .btn-continue{
+    width:100%;padding:16px;
+    background:#d8d8d8;color:#888;
+    border:none;border-radius:4px;
+    font-size:16px;font-weight:500;
+    cursor:pointer;font-family:inherit;
+    transition:background .2s,color .2s;
+  }
+  .btn-continue.ready{background:var(--dblue);color:#fff;cursor:pointer;}
+  .btn-continue:active{opacity:0.88;}
+
+  /* Important info footer */
+  .footer-info{
+    display:flex;align-items:center;gap:10px;
+    padding:14px 16px;background:#fff;
+    border-top:1px solid var(--brd);
+  }
+  .footer-info-ic{
+    width:20px;height:20px;border-radius:50%;
+    background:var(--blue);
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;color:#fff;font-size:11px;font-weight:800;
+    font-family:Georgia,serif;
+  }
+  .footer-info-lbl{font-size:14px;color:var(--blue);font-weight:500;cursor:pointer;}
+
+  /* ═══ BOTTOM NAV ═══ */
+  .bnav-outer{
+    position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+    width:100%;max-width:390px;z-index:100;background:#fff;
+  }
+  .bnav-img{display:block;width:100%;height:auto;}
+  .nb{position:absolute;top:0;height:78%;width:20%;cursor:pointer;text-decoration:none;border-radius:6px;-webkit-tap-highlight-color:rgba(0,0,0,0.07);}
+  .nb:active{background:rgba(0,0,0,0.06);}
+  #btnHome    {left:0%;}
+  #btnAccounts{left:20%;}
+  #btnFab     {position:absolute;top:0;left:40%;width:20%;height:100%;cursor:pointer;}
+  #btnTransfer{left:60%;}
+  #btnMore    {left:80%;}
+
+  /* ═══ SHEETS ═══ */
+  .ovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:500;align-items:flex-end;justify-content:center;}
+  .ovl.open{display:flex;}
+  .sheet{background:#fff;width:100%;max-width:390px;border-radius:16px 16px 0 0;padding-bottom:34px;max-height:80vh;overflow-y:auto;}
+  .sh-handle{width:38px;height:5px;background:#d1d1d6;border-radius:3px;margin:10px auto 12px;}
+  .sh-title{font-size:13px;font-weight:600;color:#8e8e93;text-align:center;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;}
+  .sh-opt{display:flex;align-items:center;justify-content:space-between;padding:15px 20px;font-size:16px;color:#1a1a1a;border-bottom:0.5px solid #e5e5ea;cursor:pointer;}
+  .sh-opt:last-child{border-bottom:none;}
+  .sh-opt:active{background:#f2f2f7;}
+  .sh-opt.sel{color:var(--dblue);font-weight:600;background:#f0f5ff;}
+  .sh-chk{color:var(--dblue);font-weight:700;font-size:18px;}
+  .sh-inp{padding:16px 20px 0;}
+  .sh-inp input,.sh-inp2 input{width:100%;font-size:18px;font-weight:400;border:none;border-bottom:2px solid var(--dblue);outline:none;font-family:inherit;padding:6px 0;color:#1a1a1a;background:transparent;}
+  .sh-inp2{padding:12px 20px 0;}
+  .sh-desc{font-size:12px;color:#aaa;padding:2px 20px 0;}
+  .sh-btns{display:flex;gap:10px;padding:14px 20px 0;}
+  .b-cancel{flex:1;padding:12px;border:1.5px solid #d1d1d6;border-radius:10px;background:#fff;font-size:15px;cursor:pointer;color:#555;font-family:inherit;}
+  .b-ok{flex:1;padding:12px;border:none;border-radius:10px;background:var(--dblue);font-size:15px;font-weight:600;cursor:pointer;color:#fff;font-family:inherit;}
+  .sh-section{padding:10px 20px 4px;font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:0.5px;}
+
+  /* Date picker */
+  .date-btn{
+    display:block;width:calc(100% - 40px);margin:14px 20px 0;
+    padding:14px;border:1.5px solid var(--dblue);border-radius:10px;
+    background:#fff;color:var(--dblue);font-size:16px;font-weight:600;
+    font-family:inherit;cursor:pointer;text-align:center;
+  }
+  input[type=date].date-native{
+    width:calc(100% - 40px);margin:10px 20px 0;
+    padding:12px;border:1.5px solid var(--dblue);border-radius:10px;
+    background:#fff;color:var(--dblue);font-size:16px;font-family:inherit;
+    outline:none;cursor:pointer;
+    -webkit-appearance:none;
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- ═══ STATUS BAR (fixed, always visible) ═══ -->
+  <div class="sb">
+    <span class="sb-carrier" id="sbCarrier">Rogers</span>
+    <div class="sb-notifs" id="sbNotifs"></div>
+    <span class="sb-time" id="sbTime">23:18</span>
+    <div class="sb-r">
+      <div class="sig-wrap">
+        <svg width="17" height="14" viewBox="0 0 17 14" fill="white">
+          <rect x="0" y="10" width="3" height="4" rx="0.5"/>
+          <rect x="4.5" y="7" width="3" height="7" rx="0.5"/>
+          <rect x="9" y="3.5" width="3" height="10.5" rx="0.5"/>
+          <rect x="13.5" y="0" width="3" height="14" rx="0.5"/>
+        </svg>
+      </div>
+      <svg width="16" height="13" viewBox="0 0 20 16" fill="none">
+        <path d="M1 5.2Q10-.8 19 5.2" stroke="white" stroke-width="2.1" stroke-linecap="round"/>
+        <path d="M4 8.8Q10 4.5 16 8.8" stroke="white" stroke-width="2.1" stroke-linecap="round"/>
+        <path d="M7 12Q10 9.5 13 12" stroke="white" stroke-width="2.1" stroke-linecap="round"/>
+        <circle cx="10" cy="14.5" r="1.5" fill="white"/>
+      </svg>
+      <div class="batt-wrap">
+        <span class="batt-pct" id="sbBpct">89%</span>
+        <div class="batt-ic">
+          <svg width="25" height="13" viewBox="0 0 25 13" fill="none">
+            <rect x=".75" y=".75" width="21.5" height="11.5" rx="3" stroke="white" stroke-width="1.5"/>
+            <rect x="22.25" y="4" width="2" height="5" rx="1" fill="white"/>
+            <rect x="2" y="2" width="16" height="9" rx="2" fill="white"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ BLUE TOP BAR ═══ -->
+  <div class="top-bar">
+    <button class="top-bar-back" onclick="window.location='index.html'">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M19 12H5M5 12l7-7M5 12l7 7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Send funds
+    </button>
+    <button class="top-bar-help">?</button>
+  </div>
+
+  <!-- ═══ TABS: RBC Account | Avion Rewards ═══ -->
+  <div class="tabs">
+    <span class="tab-lbl">Send with:</span>
+    <span class="tab active" id="tabRBC"     onclick="setTab('RBC')">RBC Account</span>
+    <span class="tab"        id="tabAvion"   onclick="setTab('Avion')">Avion Rewards</span>
+  </div>
+
+  <!-- ═══ INTERAC BANNER ═══ -->
+  <div class="interac-row">
+    <span class="interac-lbl">Via Interac e&#8209;Transfer</span>
+    <img id="interacLogo" src="" alt="Interac e-Transfer" style="height:36px;width:auto;object-fit:contain;display:block;"/>
+  </div>
+
+  <!-- ═══ LIMIT + SECURITY ═══ -->
+  <div class="info-block">
+    <div class="limit-row">
+      <div class="limit-lbl">
+        Remaining daily limit
+        <div class="limit-circle">i</div>
+      </div>
+      <span class="limit-val" id="limitVal">10,000.00 CAD</span>
+    </div>
+    <div class="security-row">
+      <div class="security-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#666" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="11" r="2" fill="#666"/>
+          <line x1="12" y1="13" x2="12" y2="16" stroke="#666" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span class="security-txt">For your security, we will sometimes ask you to verify your identity.</span>
+    </div>
+  </div>
+
+  <!-- ═══ FORM ═══ -->
+  <div class="form-block">
+
+    <!-- FROM -->
+    <div class="field" id="fieldFrom" onclick="openSheet('shFrom')">
+      <div class="field-inner">
+        <span class="field-lbl">From</span>
+        <span id="fromVal" class="field-placeholder">Select account</span>
+      </div>
+      <div class="field-arrow">
+        <svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1l5 5 5-5" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+
+    <!-- TO -->
+    <div class="field" id="fieldTo" onclick="openSheet('shTo')">
+      <div class="field-inner" id="toInner">
+        <span class="field-lbl">To</span>
+        <span id="toVal" class="field-placeholder">Recipient name or email</span>
+      </div>
+      <div class="field-arrow">
+        <svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1l5 5 5-5" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+
+    <!-- AMOUNT -->
+    <div class="amount-field">
+      <div class="amount-lbl">Amount</div>
+      <input class="amount-input" id="amountInp" type="text" inputmode="decimal" placeholder="0.00" oninput="checkReady()"/>
+    </div>
+
+    <!-- NOTIFY VIA -->
+    <div class="field" onclick="openSheet('shNotify')">
+      <div class="field-inner">
+        <span class="field-lbl">Notify recipient via</span>
+        <span id="notifyVal" class="field-placeholder">Select method</span>
+      </div>
+      <div class="field-arrow">
+        <svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1l5 5 5-5" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+
+    <!-- WHEN (today's date, changeable) -->
+    <div class="field" onclick="openSheet('shWhen')">
+      <div class="field-inner">
+        <span class="field-lbl">When</span>
+        <span id="whenVal" class="field-val"></span>
+      </div>
+      <div class="field-arrow">
+        <svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1l5 5 5-5" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+
+    <!-- FREQUENCY -->
+    <div class="field" onclick="openSheet('shFreq')">
+      <div class="field-inner">
+        <span class="field-lbl">Frequency</span>
+        <span id="freqVal" class="field-val">One time</span>
+      </div>
+      <div class="field-arrow">
+        <svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1l5 5 5-5" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+
+    <!-- MESSAGE -->
+    <div class="message-field">
+      <div class="message-lbl">Message (optional)</div>
+      <textarea class="message-textarea" id="msgTxt" maxlength="400" placeholder="Write a message to the recipient…" oninput="updateCount()"></textarea>
+      <div class="message-count"><span id="msgCount">0</span>/400</div>
+    </div>
+
+  </div>
+
+  <!-- CONTINUE -->
+  <div class="continue-wrap">
+    <button class="btn-continue" id="btnContinue" onclick="handleContinue()">Continue</button>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer-info">
+    <div class="footer-info-ic">i</div>
+    <span class="footer-info-lbl">Important information</span>
+  </div>
+
+</div><!-- /phone -->
+
+<!-- ═══ BOTTOM NAV ═══ -->
+<div class="bnav-outer">
+  <img class="bnav-img" id="navImg" alt="Nav"/>
+  <a class="nb" id="btnHome"     href="index.html"></a>
+  <a class="nb" id="btnAccounts" href="accounts.html"></a>
+  <div id="btnFab" onclick="window.location='menu.html'" style="position:absolute;top:0;left:40%;width:20%;height:100%;cursor:pointer;"></div>
+  <a class="nb" id="btnTransfer" href="transfer.html"></a>
+  <a class="nb" id="btnMore"     href="more.html"></a>
+</div>
+
+<!-- ═══ SHEET: From ═══ -->
+<div class="ovl" id="shFrom" onclick="closeOvl(event,'shFrom')">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title">From — Select Account</div>
+    <div id="fromList"></div>
+    <div class="sh-btns"><button class="b-cancel" onclick="closeSheet('shFrom')">Cancel</button></div>
+  </div>
+</div>
+
+<!-- ═══ SHEET: To ═══ -->
+<div class="ovl" id="shTo" onclick="closeOvl(event,'shTo')">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title">To — Recipient</div>
+    <div class="sh-section">Full Name</div>
+    <div class="sh-inp"><input type="text" id="toNameInp" placeholder="e.g. John Smith"/></div>
+    <div class="sh-section">Email or Phone</div>
+    <div class="sh-inp"><input type="text" id="toContactInp" placeholder="e.g. john@email.com or 514-555-0123"/></div>
+    <div class="sh-btns">
+      <button class="b-cancel" onclick="closeSheet('shTo')">Cancel</button>
+      <button class="b-ok" onclick="confirmTo()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SHEET: Notify ═══ -->
+<div class="ovl" id="shNotify" onclick="closeOvl(event,'shNotify')">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title">Notify Recipient Via</div>
+    <div class="sh-opt" onclick="pickNotify('Email address')">Email address<span id="notifChk_email" style="display:none" class="sh-chk">✓</span></div>
+    <div class="sh-opt" onclick="pickNotify('Phone number')">Phone number<span id="notifChk_phone" style="display:none" class="sh-chk">✓</span></div>
+    <div class="sh-btns"><button class="b-cancel" onclick="closeSheet('shNotify')">Cancel</button></div>
+  </div>
+</div>
+
+<!-- ═══ SHEET: When ═══ -->
+<div class="ovl" id="shWhen" onclick="closeOvl(event,'shWhen')">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title">When</div>
+    <div class="sh-section">Select date</div>
+    <input type="date" class="date-native" id="dateNative" onchange="pickDate(this.value)"/>
+    <div class="sh-btns">
+      <button class="b-cancel" onclick="closeSheet('shWhen')">Cancel</button>
+      <button class="b-ok" onclick="closeSheet('shWhen')">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SHEET: Frequency ═══ -->
+<div class="ovl" id="shFreq" onclick="closeOvl(event,'shFreq')">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title">Frequency</div>
+    <div class="sh-opt sel" id="freq_one"    onclick="pickFreq('One time','freq_one')">One time<span class="sh-chk">✓</span></div>
+    <div class="sh-opt"     id="freq_weekly" onclick="pickFreq('Weekly','freq_weekly')">Weekly</div>
+    <div class="sh-opt"     id="freq_bi"     onclick="pickFreq('Every 2 weeks','freq_bi')">Every 2 weeks</div>
+    <div class="sh-opt"     id="freq_monthly"onclick="pickFreq('Monthly','freq_monthly')">Monthly</div>
+    <div class="sh-opt"     id="freq_semi"   onclick="pickFreq('Semi-monthly','freq_semi')">Semi-monthly</div>
+    <div class="sh-opt"     id="freq_annual" onclick="pickFreq('Annually','freq_annual')">Annually</div>
+    <div class="sh-btns"><button class="b-cancel" onclick="closeSheet('shFreq')">Cancel</button></div>
+  </div>
+</div>
+
+<script src="interac_logo.js"></script>
+<script src="nav_transfer.js"></script>
+<script>
+document.getElementById('navImg').src = NAV_TRANSFER_B64;
+document.getElementById('interacLogo').src = INTERAC_LOGO;
+
+/* ── today's date ── */
+function todayLabel(){
+  const d=new Date();
+  return d.toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'});
+}
+function todayISO(){
+  const d=new Date();
+  return d.toISOString().split('T')[0];
+}
+document.getElementById('whenVal').textContent = todayLabel();
+document.getElementById('dateNative').value = todayISO();
+document.getElementById('dateNative').min  = todayISO();
+
+/* ── FROM accounts (pulled from home page context) ── */
+const HOME_ACCOUNTS = [
+  {name:'Chequing (3487)',  bal:'14,364.61'},
+  {name:'Visa (8924)',      bal:'-421.03'},
+  {name:'Main eSavings Account (6778)', bal:'7,879.03'},
+  {name:'US Account (2889)',bal:'740.61'},
+];
+let selFrom = null;
+function buildFrom(){
+  document.getElementById('fromList').innerHTML = HOME_ACCOUNTS.map((a,i)=>`
+    <div class="sh-opt ${selFrom===i?'sel':''}" onclick="pickFrom(${i})">
+      <div>
+        <div style="font-size:15px;">${a.name}</div>
+        <div style="font-size:12px;color:#888;">${a.bal}</div>
+      </div>
+      ${selFrom===i?'<span class="sh-chk">✓</span>':''}
+    </div>`).join('');
+}
+function pickFrom(i){
+  selFrom=i;
+  document.getElementById('fromVal').textContent=HOME_ACCOUNTS[i].name;
+  document.getElementById('fromVal').classList.remove('field-placeholder');
+  document.getElementById('fromVal').style.color='var(--txt)';
+  checkReady(); closeSheet('shFrom');
+}
+
+/* ── TO ── */
+function confirmTo(){
+  const name  = document.getElementById('toNameInp').value.trim();
+  const contact = document.getElementById('toContactInp').value.trim();
+  if(!name){document.getElementById('toNameInp').focus();return;}
+  const inner = document.getElementById('toInner');
+  inner.innerHTML = `
+    <span class="field-lbl">To</span>
+    <div class="to-name">${name}</div>
+    ${contact?`<div class="to-sub">${contact}</div>`:''}
+  `;
+  checkReady(); closeSheet('shTo');
+}
+
+/* ── NOTIFY ── */
+let notifyChoice='';
+function pickNotify(method){
+  notifyChoice=method;
+  document.getElementById('notifyVal').textContent=method;
+  document.getElementById('notifyVal').classList.remove('field-placeholder');
+  document.getElementById('notifyVal').style.color='var(--txt)';
+  ['email','phone'].forEach(k=>document.getElementById('notifChk_'+k).style.display='none');
+  document.getElementById('notifChk_'+(method==='Email address'?'email':'phone')).style.display='';
+  checkReady(); closeSheet('shNotify');
+}
+
+/* ── WHEN ── */
+function pickDate(iso){
+  const d=new Date(iso+'T12:00:00');
+  document.getElementById('whenVal').textContent=d.toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'});
+}
+
+/* ── FREQUENCY ── */
+let freqChoice='One time', freqSelId='freq_one';
+function pickFreq(val,id){
+  document.getElementById(freqSelId).classList.remove('sel');
+  document.getElementById(freqSelId).innerHTML=document.getElementById(freqSelId).textContent;
+  freqChoice=val; freqSelId=id;
+  document.getElementById(id).classList.add('sel');
+  document.getElementById(id).innerHTML=val+'<span class="sh-chk">✓</span>';
+  document.getElementById('freqVal').textContent=val;
+  closeSheet('shFreq');
+}
+
+/* ── MESSAGE COUNT ── */
+function updateCount(){
+  const n=document.getElementById('msgTxt').value.length;
+  document.getElementById('msgCount').textContent=n;
+}
+
+/* ── CONTINUE button state ── */
+function checkReady(){
+  const fromOk  = selFrom !== null;
+  const toOk    = document.getElementById('toInner').querySelector('.to-name') !== null;
+  const amtOk   = parseFloat(document.getElementById('amountInp').value||0) > 0;
+  const btn = document.getElementById('btnContinue');
+  btn.classList.toggle('ready', fromOk && toOk && amtOk);
+}
+function handleContinue(){
+  if(!document.getElementById('btnContinue').classList.contains('ready')) return;
+  alert('Transfer initiated! (placeholder)');
+}
+
+/* ── TABS ── */
+function setTab(t){
+  document.getElementById('tabRBC').classList.toggle('active',t==='RBC');
+  document.getElementById('tabAvion').classList.toggle('active',t==='Avion');
+}
+
+/* ── SHEETS ── */
+function openSheet(id){
+  if(id==='shFrom') buildFrom();
+  document.getElementById(id).classList.add('open');
+}
+function closeSheet(id){document.getElementById(id).classList.remove('open');}
+function closeOvl(e,id){if(e.target===document.getElementById(id))closeSheet(id);}
+
+/* ── sync status bar state from sessionStorage if available ── */
+(function(){
+  try{
+    const d=JSON.parse(sessionStorage.getItem('rbc_sb')||'{}');
+    if(d.carrier) document.getElementById('sbCarrier').textContent=d.carrier;
+    if(d.time)    document.getElementById('sbTime').textContent=d.time;
+    if(d.batt)    document.getElementById('sbBpct').textContent=d.batt+'%';
+  }catch(e){}
+})();
+</script>
+</body>
+</html>

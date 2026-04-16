@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>RBC — Transfer Funds</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  :root{--nav-h:86px;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Roboto','Helvetica Neue',sans-serif;background:#222;display:flex;justify-content:center;min-height:100vh;}
+  .phone{width:100%;max-width:390px;min-height:100vh;background:#f5f5f5;display:flex;flex-direction:column;padding-top:30px;padding-bottom:var(--nav-h);}
+
+  /* ── FIXED STATUS BAR ── */
+  .sb{background:#000;color:#fff;display:flex;align-items:center;padding:7px 10px 6px;height:30px;position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:390px;z-index:200;gap:4px;}
+  .sb-carrier{font-size:12px;font-weight:600;white-space:nowrap;}
+  .sb-notifs{display:flex;align-items:center;gap:3px;flex:1;padding-left:4px;overflow:hidden;}
+  .sb-time{position:absolute;left:50%;transform:translateX(-50%);font-size:13px;font-weight:700;white-space:nowrap;}
+  .sb-r{display:flex;align-items:center;gap:6px;margin-left:auto;}
+  .batt-pct{font-size:11px;font-weight:600;}
+
+  /* ── MENU IMAGE WRAPPER ── */
+  .menu-wrap{position:relative;flex:1;}
+  .menu-img{display:block;width:100%;height:auto;}
+
+  /*
+   * ════════════════════════════════════════════
+   *  ROW OVERLAYS — confirmed-working version
+   *
+   *  User confirmed:
+   *    Row 8 (International funds transfers): top=88.76% height=6.51% ✓
+   *    Row 9 (Foreign currency purchase):     top=95.27% height=4.73% ✓
+   *
+   *  Canada rows: 6 × 7.54% each, starting at 16.38%
+   *  International header: 61.62% – 82.25% (no overlay)
+   * ════════════════════════════════════════════
+   */
+  .row-tap{
+    position:absolute;
+    left:0;width:100%;
+    cursor:pointer;
+    -webkit-tap-highlight-color:rgba(0,82,165,0.10);
+  }
+  .row-tap:active{background:rgba(0,82,165,0.09);}
+
+  /* ── FIXED BOTTOM NAV ── */
+  .bnav-outer{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:390px;z-index:100;background:#fff;}
+  .bnav-img{display:block;width:100%;height:auto;}
+  .nb{position:absolute;top:0;height:78%;width:20%;cursor:pointer;text-decoration:none;border-radius:6px;-webkit-tap-highlight-color:rgba(0,0,0,0.07);}
+  .nb:active{background:rgba(0,0,0,0.06);}
+  #btnHome    {left:0%;}
+  #btnAccounts{left:20%;}
+  #btnFab     {position:absolute;top:0;left:40%;width:20%;height:100%;cursor:pointer;}
+  #btnTransfer{left:60%;}
+  #btnMore    {left:80%;}
+
+  /* ── TOAST ── */
+  .toast{position:fixed;bottom:calc(var(--nav-h)+16px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.82);color:#fff;font-size:13px;padding:10px 18px;border-radius:20px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:300;white-space:nowrap;}
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- STATUS BAR -->
+  <div class="sb">
+    <span class="sb-carrier" id="sbCarrier">Rogers</span>
+    <div class="sb-notifs" id="sbNotifs"></div>
+    <span class="sb-time" id="sbTime">23:18</span>
+    <div class="sb-r">
+      <div id="sigIcon" style="display:flex;align-items:center;">
+        <svg width="17" height="14" viewBox="0 0 17 14" fill="white"><rect x="0" y="10" width="3" height="4" rx="0.5"/><rect x="4.5" y="7" width="3" height="7" rx="0.5"/><rect x="9" y="3.5" width="3" height="10.5" rx="0.5"/><rect x="13.5" y="0" width="3" height="14" rx="0.5"/></svg>
+      </div>
+      <div id="wifiIcon" style="display:flex;align-items:center;">
+        <svg width="16" height="13" viewBox="0 0 20 16" fill="none"><path d="M1 5.2Q10-.8 19 5.2" stroke="white" stroke-width="2.1" stroke-linecap="round"/><path d="M4 8.8Q10 4.5 16 8.8" stroke="white" stroke-width="2.1" stroke-linecap="round"/><path d="M7 12Q10 9.5 13 12" stroke="white" stroke-width="2.1" stroke-linecap="round"/><circle cx="10" cy="14.5" r="1.5" fill="white"/></svg>
+      </div>
+      <div style="display:flex;align-items:center;gap:3px;">
+        <span class="batt-pct" id="sbBpct">89%</span>
+        <div id="battIcon">
+          <svg width="25" height="13" viewBox="0 0 25 13" fill="none"><rect x=".75" y=".75" width="21.5" height="11.5" rx="3" stroke="white" stroke-width="1.5"/><rect x="22.25" y="4" width="2" height="5" rx="1" fill="white"/><rect x="2" y="2" width="16" height="9" rx="2" fill="white"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MENU IMAGE + OVERLAYS -->
+  <div class="menu-wrap">
+    <img class="menu-img" id="menuImg" src="" alt="Transfer Funds"/>
+
+    <!-- ① Transfer funds between my accounts  16.38% → 23.92% -->
+    <div class="row-tap" style="top:16.38%;height:7.54%;"
+         onclick="goTo('Transfer funds between my accounts')"></div>
+
+    <!-- ② Pay a bill  23.92% → 31.46% -->
+    <div class="row-tap" style="top:23.92%;height:7.54%;"
+         onclick="goTo('Pay a bill')"></div>
+
+    <!-- ③ Interac e-Transfer  31.46% → 39.00% -->
+    <div class="row-tap" style="top:31.46%;height:7.54%;"
+         onclick="window.location='e-transfer.html'"></div>
+
+    <!-- ④ Send funds to an RBC client  39.00% → 46.54% -->
+    <div class="row-tap" style="top:39.00%;height:7.54%;"
+         onclick="goTo('Send funds to an RBC client')"></div>
+
+    <!-- ⑤ Deposit a cheque  46.54% → 54.08% -->
+    <div class="row-tap" style="top:46.54%;height:7.54%;"
+         onclick="goTo('Deposit a cheque')"></div>
+
+    <!-- ⑥ Share between friends  54.08% → 61.62% -->
+    <div class="row-tap" style="top:54.08%;height:7.54%;"
+         onclick="goTo('Share between friends')"></div>
+
+    <!-- International header 61.62% → 82.25% — NO overlay -->
+
+    <!-- ⑦ Transfers to RBC Bank U.S.  82.25% → 88.76% -->
+    <div class="row-tap" style="top:82.25%;height:6.51%;"
+         onclick="goTo('Transfers to RBC Bank U.S.')"></div>
+
+    <!-- ⑧ International funds transfers  88.76% → 95.27% ✓ confirmed -->
+    <div class="row-tap" style="top:88.76%;height:6.51%;"
+         onclick="goTo('International funds transfers')"></div>
+
+    <!-- ⑨ Foreign currency purchase  95.27% → 100% ✓ confirmed -->
+    <div class="row-tap" style="top:95.27%;height:4.73%;"
+         onclick="goTo('Foreign currency purchase')"></div>
+
+  </div>
+</div>
+
+<!-- BOTTOM NAV — Transfer highlighted in blue -->
+<div class="bnav-outer">
+  <img class="bnav-img" id="navImg" alt="Nav"/>
+  <a class="nb" id="btnHome"     href="index.html"></a>
+  <a class="nb" id="btnAccounts" href="accounts.html"></a>
+  <div id="btnFab" style="position:absolute;top:0;left:40%;width:20%;height:100%;cursor:pointer;" onclick="window.location='menu.html'"></div>
+  <a class="nb" id="btnTransfer" href="transfer.html"></a>
+  <a class="nb" id="btnMore"     href="more.html"></a>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="sb_state.js"></script>
+<script src="transfer_menu.js"></script>
+<script src="nav_transfer.js"></script>
+<script>
+SB.applyToPage();
+document.getElementById('menuImg').src = TRANSFER_MENU_B64;
+document.getElementById('navImg').src  = NAV_TRANSFER_B64;
+
+function goTo(label){ showToast(label + ' — coming soon'); }
+let tt;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('show'),2200);
+}
+</script>
+</body>
+</html>
